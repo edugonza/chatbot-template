@@ -1,0 +1,13 @@
+[build-system]
+requires = ["maturin>=1.9,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "matrix-bridge"
+version = "0.1.0"
+description = "Thin Python bindings over matrix-rust-sdk for bots"
+requires-python = ">=3.12"
+
+[tool.maturin]
+module-name = "matrix_bridge._native"
+python-source = "python"

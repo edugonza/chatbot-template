@@ -1,0 +1,57 @@
+name: Deploy bot
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "bot/**"
+      - "docker-compose.yml"
+      - ".github/workflows/deploy.yml"
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          enable-cache: true
+          cache-dependency-glob: bot/uv.lock
+
+      # The Python tests don't import the Rust bridge, so skip compiling it
+      # here; the Docker build in the deploy job compiles and links it.
+      - name: Run tests
+        working-directory: bot
+        run: |
+          uv sync --frozen --no-install-package matrix-bridge
+          uv run --no-sync pytest
+
+  deploy:
+    needs: test
+    runs-on: self-hosted
+    environment: prod
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Write .env
+        run: |
+          cat > .env <<EOF
+          MATRIX_HOMESERVER=${{ vars.MATRIX_HOMESERVER }}
+          MATRIX_USER_ID=${{ vars.MATRIX_USER_ID }}
+          MATRIX_ACCESS_TOKEN=${{ secrets.MATRIX_ACCESS_TOKEN }}
+          MATRIX_DEVICE_ID=${{ secrets.MATRIX_DEVICE_ID }}
+          MATRIX_STORE_PASSPHRASE=${{ secrets.MATRIX_STORE_PASSPHRASE }}
+          MATRIX_ALLOWED_USERS=${{ vars.MATRIX_ALLOWED_USERS }}
+          MATRIX_ALLOWED_ROOMS=${{ vars.MATRIX_ALLOWED_ROOMS }}
+          GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL=${{ vars.GEMINI_MODEL }}
+          LOG_LEVEL=${{ vars.LOG_LEVEL }}
+          EOF
+
+      - name: Deploy with Docker Compose
+        run: docker compose up -d --build

@@ -1,0 +1,27 @@
+[project]
+name = "bot"
+version = "0.1.0"
+description = "Matrix chatbot template (matrix-rust-sdk via PyO3 + Gemini)"
+requires-python = ">=3.12"
+dependencies = [
+    "matrix-bridge",
+    "google-genai>=2.0,<3.0",
+    "markdown>=3.6,<4.0",
+    "tzdata",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=1.0",
+]
+
+[tool.uv.sources]
+matrix-bridge = { workspace = true }
+
+[tool.uv.workspace]
+members = ["matrix_bridge"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
