@@ -9,6 +9,12 @@ once the request came from an allowlisted user. The check that matters is
 the one *you* do in Element X: the bot posts its emojis in the room (and
 logs them) so you can compare them with what your client shows before
 tapping "They match".
+
+Verifying a *session* of your own account (rather than another user from a
+DM) is a to-device exchange with no room attached. Since that only happens
+when the bot's account is one of your own sessions, any room it's allowed
+to post in still reaches you, so we fall back to one of those instead of
+only logging.
 """
 
 from __future__ import annotations
@@ -47,23 +53,37 @@ class VerificationPolicy:
     ) -> bool:
         line = format_emojis(emojis)
         logger.info("Verification emojis with %s: %s", user_id, line)
-        if room_id:
+        target = room_id or self._fallback_room()
+        if target:
             await self._notice(
-                room_id,
-                f"🔐 The emojis on my side are:\n\n{line}\n\n"
+                target,
+                f"🔐 The emojis for verifying {user_id} are:\n\n{line}\n\n"
                 "Confirm in your client only if they match exactly.",
             )
         return True
 
     async def on_verification_done(self, user_id: str, room_id: str | None) -> None:
         logger.info("Verification with %s completed", user_id)
-        if room_id:
-            await self._notice(room_id, "✅ Verification complete.")
+        target = room_id or self._fallback_room()
+        if target:
+            await self._notice(target, f"✅ Verification with {user_id} complete.")
 
     async def on_verification_cancelled(
         self, user_id: str, room_id: str | None, reason: str
     ) -> None:
         logger.info("Verification with %s cancelled: %s", user_id, reason)
+
+    def _fallback_room(self) -> str | None:
+        """A room to notify in when the verification itself has none.
+
+        To-device verification (typically verifying a second session of the
+        bot's own account) carries no room at all. Picking any allowlisted
+        room deterministically still reaches the person doing the
+        verification, since that only happens when they share the account.
+        """
+        if not self._settings.allowed_rooms:
+            return None
+        return min(self._settings.allowed_rooms)
 
     async def _notice(self, room_id: str, text: str) -> None:
         await self._client.send_message(room_id, markdown_content(text, msgtype="m.notice"))
