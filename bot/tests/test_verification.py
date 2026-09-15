@@ -17,7 +17,7 @@ class FakeClient:
         return "$sent"
 
 
-def _settings(allowed_rooms=frozenset({"!room:matrix.org"})):
+def _settings():
     return Settings(
         matrix_homeserver="https://matrix.org",
         matrix_user_id="@bot:matrix.org",
@@ -26,7 +26,7 @@ def _settings(allowed_rooms=frozenset({"!room:matrix.org"})):
         matrix_store_path="/tmp/store",
         matrix_store_passphrase=None,
         allowed_users=frozenset({"@you:matrix.org"}),
-        allowed_rooms=allowed_rooms,
+        allowed_rooms=frozenset({"!room:matrix.org"}),
         gemini_api_key="key",
         gemini_model="model",
     )
@@ -55,22 +55,9 @@ async def test_emojis_are_posted_to_the_room_and_confirmed():
 
 
 @pytest.mark.asyncio
-async def test_to_device_verification_falls_back_to_an_allowed_room():
+async def test_to_device_verification_sends_nothing():
     client = FakeClient()
     policy = VerificationPolicy(client, _settings())
-
-    assert await policy.on_verification_emojis("@you:matrix.org", None, [Emoji("🐶", "Dog")])
-
-    [(room_id, content)] = client.sent
-    assert room_id == "!room:matrix.org"
-    assert content["msgtype"] == "m.notice"
-    assert "🐶 Dog" in content["body"]
-
-
-@pytest.mark.asyncio
-async def test_to_device_verification_sends_nothing_without_an_allowed_room():
-    client = FakeClient()
-    policy = VerificationPolicy(client, _settings(allowed_rooms=frozenset()))
 
     assert await policy.on_verification_emojis("@you:matrix.org", None, [Emoji("🐶", "Dog")])
     assert client.sent == []
