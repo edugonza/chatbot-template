@@ -9,6 +9,8 @@ Copy the repo, then adapt the prompt, tools, commands and handlers (see
 deployed with `docker compose` from a GitHub Actions workflow on a self-hosted
 runner.
 
+For how each component works in detail, see [`docs/`](docs/README.md).
+
 ## Architecture
 
 ```
