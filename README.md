@@ -13,6 +13,9 @@ For how each component works in detail, see [`docs/`](docs/README.md).
 
 ## Architecture
 
+![Architecture diagram](docs/diagrams/architecture.drawio.png)
+*Architecture of the Matrix Chatbot Template project.*
+
 ```
 bot/
 ├── matrix_bridge/          # Rust ↔ Python bridge (PyO3 + maturin)
